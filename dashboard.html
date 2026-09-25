@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - Wastewater AI</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><span>WA</span> Wastewater AI</div>
+  <nav>
+    <a class="active" href="dashboard.html">Dashboard</a>
+    <a href="water.html">Water Quality</a>
+    <a href="prediction.html">AI Prediction</a>
+    <a href="history.html">History</a>
+  </nav>
+  <button class="logout" onclick="logout()">Logout</button>
+</aside>
+
+<main class="main">
+  <header>
+    <div>
+      <p class="muted">Welcome back</p>
+      <h2 id="username">User</h2>
+    </div>
+    <div id="sensorStatus" class="status-dot live">● LIVE</div>
+  </header>
+
+  <section class="panel">
+    <div class="panel-title">
+      <div>
+        <h3>Real-time Sensor Data</h3>
+        <p class="muted">Mock sensors update automatically every 2 seconds</p>
+      </div>
+      <span class="badge">MOCK SENSOR</span>
+    </div>
+
+    <section class="cards">
+      <div class="stat"><span>Current DO</span><strong id="doValue">--</strong><small>mg/L</small></div>
+      <div class="stat"><span>Temperature</span><strong id="tempValue">--</strong><small>°C</small></div>
+      <div class="stat"><span>COD</span><strong id="codValue">--</strong><small>mg/L</small></div>
+      <div class="stat"><span>Flow Rate</span><strong id="flowValue">--</strong><small>m³/h</small></div>
+    </section>
+    <p class="muted">Last update: <span id="updatedValue">--</span></p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">
+      <h3>AI Aerator Control</h3>
+      <span class="badge" id="modeValue">AUTO</span>
+    </div>
+    <div class="prediction-box">
+      <div class="gauge"><span id="gaugeValue">--%</span></div>
+      <div>
+        <h3>Recommended Aerator Speed</h3>
+        <p class="muted">AI calculates the aerator speed from the latest sensor values.</p>
+        <strong id="speedValue">--</strong><span>%</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">
+      <div>
+        <h3>Live Trend</h3>
+        <p class="muted">Last 30 readings (updates every 2 seconds)</p>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="trendChart" height="90"></canvas></div>
+  </section>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
