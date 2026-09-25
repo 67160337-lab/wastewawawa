@@ -1,0 +1,13 @@
+services:
+  wastewater-ai:
+    build: .
+    container_name: wastewater-ai
+    ports:
+      - "10000:10000"
+    environment:
+      MOCK_SENSOR: "true"
+      SENSOR_SAVE_INTERVAL: "30"
+      DATABASE_URL: "sqlite:////app/data/wastewater.db"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

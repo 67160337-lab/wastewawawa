@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: wastewater-ai
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: MOCK_SENSOR
+        value: "true"
+      - key: SENSOR_SAVE_INTERVAL
+        value: "30"
