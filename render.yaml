@@ -10,3 +10,7 @@ services:
         value: "true"
       - key: SENSOR_SAVE_INTERVAL
         value: "30"
+      # Set this to an existing username to grant that account admin access
+      # on the next deploy/restart. Safe to remove once you have an admin.
+      - key: ADMIN_USERNAME
+        value: ""

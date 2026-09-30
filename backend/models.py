@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean
 from datetime import datetime
 from backend.database import Base
 
@@ -8,6 +8,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False)
     email = Column(String(150), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class WaterQuality(Base):

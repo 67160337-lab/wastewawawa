@@ -9,14 +9,53 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from backend.database import Base, engine, get_db
+from backend.database import Base, engine, get_db, SessionLocal, DATABASE_URL
 from backend.models import User, WaterQuality, AIPrediction
-from backend.schemas import RegisterRequest, LoginRequest, WaterRequest, PredictionRequest
+from backend.schemas import RegisterRequest, LoginRequest, WaterRequest, PredictionRequest, AdminRoleUpdate
 from backend.auth import hash_password, verify_password
 from backend.mock_sensor import get_sensor_data
+from sqlalchemy import text
 
 os.makedirs("data", exist_ok=True)
 Base.metadata.create_all(bind=engine)
+
+
+def _migrate_sqlite_add_is_admin():
+    """Older deployments' SQLite files won't have the is_admin column yet.
+    create_all() only creates missing tables, not missing columns, so add it here."""
+    if not DATABASE_URL.startswith("sqlite"):
+        return
+    try:
+        with engine.connect() as conn:
+            cols = [row[1] for row in conn.execute(text("PRAGMA table_info(users)"))]
+            if "is_admin" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
+                conn.commit()
+                print("Migrated: added is_admin column to users table.")
+    except Exception as e:
+        print(f"Warning: is_admin migration skipped: {e}")
+
+
+def _bootstrap_admin():
+    """Set ADMIN_USERNAME env var to grant that existing user admin rights on startup."""
+    admin_username = os.getenv("ADMIN_USERNAME")
+    if not admin_username:
+        return
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == admin_username).first()
+        if user and not user.is_admin:
+            user.is_admin = True
+            db.commit()
+            print(f"Granted admin access to '{admin_username}' via ADMIN_USERNAME.")
+        elif not user:
+            print(f"ADMIN_USERNAME='{admin_username}' set, but that user doesn't exist yet.")
+    finally:
+        db.close()
+
+
+_migrate_sqlite_add_is_admin()
+_bootstrap_admin()
 
 app = FastAPI(title="Wastewater AI API")
 
@@ -60,6 +99,13 @@ def user_from_token(authorization: str, db: Session):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid session")
 
+    return user
+
+
+def admin_from_token(authorization: str, db: Session):
+    user = user_from_token(authorization, db)
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
 
@@ -124,14 +170,14 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     return {
         "message": "Login successful",
         "token": user.username,
-        "user": {"id": user.id, "username": user.username, "email": user.email}
+        "user": {"id": user.id, "username": user.username, "email": user.email, "is_admin": user.is_admin}
     }
 
 
 @app.get("/me")
 def me(authorization: str = Header(default=""), db: Session = Depends(get_db)):
     user = user_from_token(authorization, db)
-    return {"id": user.id, "username": user.username, "email": user.email}
+    return {"id": user.id, "username": user.username, "email": user.email, "is_admin": user.is_admin}
 
 
 @app.get("/sensor/live")
@@ -266,6 +312,126 @@ def prediction_history(
         "current_do": r.current_do,
         "predicted_speed": r.predicted_speed,
         "created_at": r.created_at.isoformat()
+    } for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Admin-only endpoints: manage user accounts and view data across all users.
+# ---------------------------------------------------------------------------
+
+@app.get("/admin/users")
+def admin_list_users(
+    authorization: str = Header(default=""),
+    db: Session = Depends(get_db)
+):
+    admin_from_token(authorization, db)
+
+    users = db.query(User).order_by(User.created_at.asc()).all()
+    return [{
+        "id": u.id,
+        "username": u.username,
+        "email": u.email,
+        "is_admin": u.is_admin,
+        "created_at": u.created_at.isoformat()
+    } for u in users]
+
+
+@app.patch("/admin/users/{user_id}")
+def admin_set_role(
+    user_id: int,
+    data: AdminRoleUpdate,
+    authorization: str = Header(default=""),
+    db: Session = Depends(get_db)
+):
+    admin = admin_from_token(authorization, db)
+
+    if user_id == admin.id and not data.is_admin:
+        raise HTTPException(400, "You cannot remove your own admin access")
+
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(404, "User not found")
+
+    target.is_admin = data.is_admin
+    db.commit()
+
+    return {"message": "Role updated", "id": target.id, "is_admin": target.is_admin}
+
+
+@app.delete("/admin/users/{user_id}")
+def admin_delete_user(
+    user_id: int,
+    authorization: str = Header(default=""),
+    db: Session = Depends(get_db)
+):
+    admin = admin_from_token(authorization, db)
+
+    if user_id == admin.id:
+        raise HTTPException(400, "You cannot delete your own account")
+
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(404, "User not found")
+
+    db.query(WaterQuality).filter(WaterQuality.user_id == user_id).delete()
+    db.query(AIPrediction).filter(AIPrediction.user_id == user_id).delete()
+    db.delete(target)
+    db.commit()
+
+    return {"message": "User deleted"}
+
+
+@app.get("/admin/water")
+def admin_all_water(
+    authorization: str = Header(default=""),
+    db: Session = Depends(get_db)
+):
+    admin_from_token(authorization, db)
+
+    rows = (
+        db.query(WaterQuality, User.username)
+        .join(User, WaterQuality.user_id == User.id)
+        .order_by(WaterQuality.created_at.desc())
+        .limit(500)
+        .all()
+    )
+
+    return [{
+        "id": r.WaterQuality.id,
+        "username": r.username,
+        "influent_cod": r.WaterQuality.influent_cod,
+        "flow_rate": r.WaterQuality.flow_rate,
+        "water_temp": r.WaterQuality.water_temp,
+        "current_do": r.WaterQuality.current_do,
+        "status": r.WaterQuality.status,
+        "created_at": r.WaterQuality.created_at.isoformat()
+    } for r in rows]
+
+
+@app.get("/admin/predictions")
+def admin_all_predictions(
+    authorization: str = Header(default=""),
+    db: Session = Depends(get_db)
+):
+    admin_from_token(authorization, db)
+
+    rows = (
+        db.query(AIPrediction, User.username)
+        .join(User, AIPrediction.user_id == User.id)
+        .order_by(AIPrediction.created_at.desc())
+        .limit(500)
+        .all()
+    )
+
+    return [{
+        "id": r.AIPrediction.id,
+        "username": r.username,
+        "influent_cod": r.AIPrediction.influent_cod,
+        "flow_rate": r.AIPrediction.flow_rate,
+        "water_temp": r.AIPrediction.water_temp,
+        "current_do": r.AIPrediction.current_do,
+        "predicted_speed": r.AIPrediction.predicted_speed,
+        "created_at": r.AIPrediction.created_at.isoformat()
     } for r in rows]
 
 

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Wastewater AI</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+<div class="layout"><aside class="sidebar">
+<div class="brand"><span>WA</span> Wastewater AI</div>
+<nav><a href="dashboard.html">Dashboard</a><a href="water.html">Water Quality</a><a href="prediction.html">AI Prediction</a><a href="history.html">History</a><a class="active" id="navAdmin" href="admin.html">Admin</a></nav>
+<button class="logout" onclick="logout()">Logout</button>
+</aside>
+<main class="main">
+<header><div><p class="muted">Administration</p><h2>Admin Panel</h2></div></header>
+
+<section class="panel">
+  <div class="panel-title"><div><h3>Manage Users</h3><p class="muted">Grant or remove admin access, or remove an account</p></div></div>
+  <p id="usersMessage" class="message"></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Created</th><th>Actions</th></tr></thead>
+      <tbody id="usersBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" style="margin-top:24px">
+  <div class="panel-title"><div><h3>All Water Quality Records</h3><p class="muted">Latest 500 records across every user</p></div></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>User</th><th>COD</th><th>Flow</th><th>Temp</th><th>DO</th><th>Status</th></tr></thead>
+      <tbody id="allWaterBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" style="margin-top:24px">
+  <div class="panel-title"><div><h3>All Predictions</h3><p class="muted">Latest 500 predictions across every user</p></div></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>User</th><th>COD</th><th>Flow</th><th>Temp</th><th>DO</th><th>Speed</th></tr></thead>
+      <tbody id="allPredictionsBody"></tbody>
+    </table>
+  </div>
+</section>
+
+</main></div>
+<script src="js/api.js"></script>
+<script src="js/admin.js"></script>
+</body></html>

@@ -20,3 +20,6 @@ class PredictionRequest(BaseModel):
     flow_rate: float
     water_temp: float
     current_do: float
+
+class AdminRoleUpdate(BaseModel):
+    is_admin: bool
