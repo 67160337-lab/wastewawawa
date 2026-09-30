@@ -99,6 +99,16 @@ def user_from_token(authorization: str, db: Session):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid session")
 
+    # Self-heals the ADMIN_USERNAME grant on every authenticated request,
+    # instead of only once at process startup. This matters because on
+    # Render's free plan, the SQLite file is wiped on every deploy, so the
+    # target account may not have existed yet when the server first booted.
+    admin_username = os.getenv("ADMIN_USERNAME")
+    if admin_username and user.username == admin_username and not user.is_admin:
+        user.is_admin = True
+        db.commit()
+        db.refresh(user)
+
     return user
 
 
@@ -166,6 +176,12 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(401, "Username or password is incorrect")
+
+    admin_username = os.getenv("ADMIN_USERNAME")
+    if admin_username and user.username == admin_username and not user.is_admin:
+        user.is_admin = True
+        db.commit()
+        db.refresh(user)
 
     return {
         "message": "Login successful",
