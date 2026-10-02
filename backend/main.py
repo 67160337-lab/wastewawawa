@@ -54,7 +54,29 @@ def _bootstrap_admin():
         db.close()
 
 
+def _migrate_sqlite_add_indexes():
+    """create_all() only builds indexes for brand-new tables, not ones that
+    already exist (same issue as the is_admin column above). CREATE INDEX IF
+    NOT EXISTS is idempotent, so it's safe to run on every startup."""
+    if not DATABASE_URL.startswith("sqlite"):
+        return
+    statements = [
+        "CREATE INDEX IF NOT EXISTS idx_water_user_created ON water_quality (user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_water_created ON water_quality (created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_pred_user_created ON ai_predictions (user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_pred_created ON ai_predictions (created_at)",
+    ]
+    try:
+        with engine.connect() as conn:
+            for stmt in statements:
+                conn.execute(text(stmt))
+            conn.commit()
+    except Exception as e:
+        print(f"Warning: index migration skipped: {e}")
+
+
 _migrate_sqlite_add_is_admin()
+_migrate_sqlite_add_indexes()
 _bootstrap_admin()
 
 app = FastAPI(title="Wastewater AI API")
@@ -449,6 +471,46 @@ def admin_all_predictions(
         "predicted_speed": r.AIPrediction.predicted_speed,
         "created_at": r.AIPrediction.created_at.isoformat()
     } for r in rows]
+
+
+@app.get("/admin/explain")
+def admin_explain_indexes(
+    authorization: str = Header(default=""),
+    db: Session = Depends(get_db)
+):
+    """Shows SQLite's query plan for the app's real queries, so you can see
+    the indexes actually being picked up (look for 'USING INDEX' in the
+    output) — the same idea as EXPLAIN ANALYZE in the indexing lab, applied
+    to this project's own tables instead of the lab's sample data."""
+    admin_from_token(authorization, db)
+
+    if not DATABASE_URL.startswith("sqlite"):
+        return {"message": "This endpoint only formats SQLite's EXPLAIN QUERY PLAN output."}
+
+    queries = {
+        "Water history for one user (WHERE user_id + ORDER BY created_at)":
+            "EXPLAIN QUERY PLAN SELECT * FROM water_quality WHERE user_id = 1 ORDER BY created_at DESC",
+        "Predictions for one user (WHERE user_id + ORDER BY created_at)":
+            "EXPLAIN QUERY PLAN SELECT * FROM ai_predictions WHERE user_id = 1 ORDER BY created_at DESC",
+        "Admin: latest 500 water records (ORDER BY created_at only)":
+            "EXPLAIN QUERY PLAN SELECT * FROM water_quality ORDER BY created_at DESC LIMIT 500",
+        "Admin: latest 500 predictions (ORDER BY created_at only)":
+            "EXPLAIN QUERY PLAN SELECT * FROM ai_predictions ORDER BY created_at DESC LIMIT 500",
+        "Login lookup (WHERE username =)":
+            "EXPLAIN QUERY PLAN SELECT * FROM users WHERE username = 'demo'",
+    }
+
+    result = []
+    with engine.connect() as conn:
+        for label, sql in queries.items():
+            rows = conn.execute(text(sql)).fetchall()
+            result.append({
+                "query": label,
+                "sql": sql,
+                "plan": [" | ".join(str(c) for c in row) for row in rows]
+            })
+
+    return result
 
 
 # Serve existing HTML/CSS/JS files.

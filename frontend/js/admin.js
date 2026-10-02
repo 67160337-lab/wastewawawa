@@ -104,6 +104,26 @@ document.getElementById("usersBody").addEventListener("click", async (e) => {
   }
 });
 
+async function loadExplain() {
+  const box = document.getElementById("explainResult");
+  box.innerHTML = "Checking...";
+  try {
+    const plans = await api("/admin/explain");
+    if (!Array.isArray(plans)) {
+      box.innerHTML = `<p class="muted">${plans.message}</p>`;
+      return;
+    }
+    box.innerHTML = plans.map(p => `
+      <div style="margin-bottom:14px">
+        <strong>${escapeHtml(p.query)}</strong>
+        <pre style="background:#0f172a;color:#e2e8f0;padding:10px;border-radius:8px;overflow:auto;margin-top:6px;font-size:13px">${escapeHtml(p.plan.join("\n"))}</pre>
+      </div>
+    `).join("");
+  } catch (err) {
+    box.innerHTML = `<p class="muted">${err.message}</p>`;
+  }
+}
+
 (async () => {
   const ok = await requireAdmin();
   if (!ok) return;

@@ -23,6 +23,12 @@
 </section>
 
 <section class="panel" style="margin-top:24px">
+  <div class="panel-title"><div><h3>Index Check</h3><p class="muted">See which real queries are using the database indexes (SQLite query plan)</p></div></div>
+  <button class="button-small" onclick="loadExplain()">Check Index Usage</button>
+  <div id="explainResult" class="table-wrap" style="margin-top:14px"></div>
+</section>
+
+<section class="panel" style="margin-top:24px">
   <div class="panel-title"><div><h3>All Water Quality Records</h3><p class="muted">Latest 500 records across every user</p></div></div>
   <div class="table-wrap">
     <table>
