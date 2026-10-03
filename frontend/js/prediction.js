@@ -14,6 +14,6 @@ document.getElementById("predictionForm").addEventListener("submit", async e => 
     });
     document.getElementById("result").classList.remove("hidden");
     document.getElementById("speed").textContent = data.predicted_speed + "%";
-    message.textContent = "Prediction successful";
+    message.textContent = "ทำนายสำเร็จ";
   } catch(err) { message.textContent = err.message; }
 });

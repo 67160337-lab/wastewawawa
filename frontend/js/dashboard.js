@@ -22,10 +22,10 @@ function initChart() {
             labels: trendData.labels,
             datasets: [
                 { label: "DO (mg/L)", data: trendData.doValues, borderColor: "#116b5b", backgroundColor: "transparent", tension: 0.3, yAxisID: "y" },
-                { label: "Temp (°C)", data: trendData.tempValues, borderColor: "#e07a1f", backgroundColor: "transparent", tension: 0.3, yAxisID: "y" },
+                { label: "อุณหภูมิ (°C)", data: trendData.tempValues, borderColor: "#e07a1f", backgroundColor: "transparent", tension: 0.3, yAxisID: "y" },
                 { label: "COD (mg/L)", data: trendData.codValues, borderColor: "#7c3aed", backgroundColor: "transparent", tension: 0.3, yAxisID: "y1" },
-                { label: "Flow (m³/h)", data: trendData.flowValues, borderColor: "#0ea5e9", backgroundColor: "transparent", tension: 0.3, yAxisID: "y1" },
-                { label: "Aerator Speed (%)", data: trendData.speedValues, borderColor: "#dc2626", backgroundColor: "transparent", tension: 0.3, yAxisID: "y1" }
+                { label: "อัตราการไหล (m³/h)", data: trendData.flowValues, borderColor: "#0ea5e9", backgroundColor: "transparent", tension: 0.3, yAxisID: "y1" },
+                { label: "ความเร็วเครื่องเติมอากาศ (%)", data: trendData.speedValues, borderColor: "#dc2626", backgroundColor: "transparent", tension: 0.3, yAxisID: "y1" }
             ]
         },
         options: {
@@ -33,8 +33,8 @@ function initChart() {
             animation: false,
             interaction: { mode: "index", intersect: false },
             scales: {
-                y: { type: "linear", position: "left", title: { display: true, text: "DO / Temp" } },
-                y1: { type: "linear", position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "COD / Flow / Speed" } }
+                y: { type: "linear", position: "left", title: { display: true, text: "DO / อุณหภูมิ" } },
+                y1: { type: "linear", position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "COD / การไหล / ความเร็ว" } }
             }
         }
     });

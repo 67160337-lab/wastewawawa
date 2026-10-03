@@ -15,8 +15,8 @@ function renderWaterChart(historyData) {
 
   const datasets = [
     { key: "influent_cod", label: "COD (mg/L)", color: "#7c3aed" },
-    { key: "flow_rate", label: "Flow (m³/h)", color: "#0ea5e9" },
-    { key: "water_temp", label: "Temp (°C)", color: "#e07a1f" },
+    { key: "flow_rate", label: "อัตราการไหล (m³/h)", color: "#0ea5e9" },
+    { key: "water_temp", label: "อุณหภูมิ (°C)", color: "#e07a1f" },
     { key: "current_do", label: "DO (mg/L)", color: "#116b5b" }
   ].map(d => ({
     label: d.label,

@@ -23,7 +23,7 @@ function renderHistoryChart(rows) {
     data: {
       labels,
       datasets: [{
-        label: "Predicted Aerator Speed (%)",
+        label: "ความเร็วเครื่องเติมอากาศที่ทำนายได้ (%)",
         data: speeds,
         borderColor: "#116b5b",
         backgroundColor: "#116b5b22",
@@ -33,7 +33,7 @@ function renderHistoryChart(rows) {
     },
     options: {
       responsive: true,
-      scales: { y: { min: 0, max: 100, title: { display: true, text: "Speed (%)" } } }
+      scales: { y: { min: 0, max: 100, title: { display: true, text: "ความเร็ว (%)" } } }
     }
   });
 }
@@ -51,7 +51,7 @@ async function loadHistory(){
         <td>${r.current_do}</td>
         <td><b>${r.predicted_speed}%</b></td>
       </tr>
-    `).join("") || '<tr><td colspan="6">No prediction records</td></tr>';
+    `).join("") || '<tr><td colspan="6">ยังไม่มีประวัติการทำนาย</td></tr>';
 
     renderHistoryChart(rows);
   } catch(err) { body.innerHTML = `<tr><td colspan="6">${err.message}</td></tr>`; }

@@ -239,7 +239,7 @@ def live_sensor(
             flow_rate=data["flow_rate"],
             water_temp=data["water_temp"],
             current_do=data["current_do"],
-            status="Good" if data["current_do"] >= 4 else "Needs Attention"
+            status="ปกติ" if data["current_do"] >= 4 else "ควรเฝ้าระวัง"
         )
 
         prediction = AIPrediction(
@@ -259,7 +259,7 @@ def live_sensor(
     return {
         **data,
         "predicted_speed": round(speed, 2),
-        "mode": "AUTO",
+        "mode": "อัตโนมัติ",
         "sensor_interval_seconds": 2
     }
 
@@ -271,7 +271,7 @@ def save_water(
     db: Session = Depends(get_db)
 ):
     user = user_from_token(authorization, db)
-    status = "Good" if data.current_do >= 4 else "Needs Attention"
+    status = "ปกติ" if data.current_do >= 4 else "ควรเฝ้าระวัง"
 
     row = WaterQuality(user_id=user.id, status=status, **data.model_dump())
     db.add(row)
