@@ -10,11 +10,12 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from backend.database import Base, engine, get_db, SessionLocal, DATABASE_URL
-from backend.models import User, WaterQuality, AIPrediction, Device, ServiceRequest
+from backend.models import User, WaterQuality, AIPrediction, Device, ServiceRequest, Order, OrderItem
 from backend.schemas import RegisterRequest, LoginRequest, WaterRequest, PredictionRequest, AdminRoleUpdate
 from backend.auth import hash_password, verify_password, create_token, user_from_token, admin_from_token
 from backend.rules import status_label
 from backend.portal import router as portal_router
+from backend.shop import router as shop_router, seed_demo_products
 from backend.mock_sensor import get_sensor_data
 from sqlalchemy import text
 
@@ -99,6 +100,7 @@ _migrate_sqlite_add_is_admin()
 _migrate_sqlite_add_indexes()
 _migrate_sqlite_add_device_id()
 _bootstrap_admin()
+seed_demo_products()
 
 app = FastAPI(title="Wastewater AI API")
 
@@ -417,6 +419,10 @@ def admin_delete_user(
     db.query(WaterQuality).filter(WaterQuality.user_id == user_id).delete()
     db.query(AIPrediction).filter(AIPrediction.user_id == user_id).delete()
     db.query(ServiceRequest).filter(ServiceRequest.user_id == user_id).delete()
+    order_ids = [o.id for o in db.query(Order.id).filter(Order.user_id == user_id).all()]
+    if order_ids:
+        db.query(OrderItem).filter(OrderItem.order_id.in_(order_ids)).delete(synchronize_session=False)
+        db.query(Order).filter(Order.id.in_(order_ids)).delete(synchronize_session=False)
     # The machine was sold by you, so keep it and just unassign it.
     db.query(Device).filter(Device.user_id == user_id).update({"user_id": None})
     db.delete(target)
@@ -520,6 +526,7 @@ def admin_explain_indexes(
 
 
 app.include_router(portal_router)
+app.include_router(shop_router)
 
 
 # Serve existing HTML/CSS/JS files.

@@ -80,3 +80,9 @@ The dashboard is bundled with each water-treatment machine sold.
 
 ### Security change
 Login tokens are now signed (HMAC). **Set `SECRET_KEY`** in your environment (`render.yaml` and `docker-compose.yml` already include it). Previously the token was just the username and could be forged.
+
+### Shop (buy an aerator / air blower)
+- Customers: `shop.html` — catalogue, "recommended for your flow rate" highlight (prefilled from their latest sensor reading), cart, order request, cancel while pending.
+- Admin: `admin.html` — order inbox (confirm / ship / complete / cancel; cancelling restores stock) and product management (price, stock, on/off sale).
+- No online payment: the seller confirms each order and arranges payment. Prices are always taken from the database, never from the browser.
+- `SEED_DEMO_PRODUCTS=true` inserts three **placeholder** products into an empty catalogue (used in `docker-compose.yml` for local testing only).

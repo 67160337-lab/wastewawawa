@@ -159,6 +159,8 @@ async function loadOverview() {
     set("kWarranty", k.warranty_expiring_30d);
     set("kExpired", k.warranty_expired ? `หมดประกันแล้ว ${k.warranty_expired}` : "");
     set("kReadings", k.readings_24h);
+    set("kOrders", k.pending_orders);
+    document.getElementById("kOrderBox").classList.toggle("alert", k.pending_orders > 0);
     document.getElementById("kAlertBox").classList.toggle("alert", k.devices_critical + k.devices_warning > 0);
     document.getElementById("kReqBox").classList.toggle("alert", k.open_requests > 0);
 
@@ -304,7 +306,112 @@ document.getElementById("reqFilter").addEventListener("change", loadRequests);
   loadOverview();
   loadDevices();
   loadRequests();
+  loadOrders();
+  loadProducts();
   loadAllWater();
   loadAllPredictions();
   setInterval(loadOverview, 30000);
 })();
+
+
+// ---------------------------------------------------------------------------
+// Shop admin: orders + products
+// ---------------------------------------------------------------------------
+const ORDER_TEXT = { pending: "รอยืนยัน", confirmed: "ยืนยันแล้ว", shipped: "จัดส่งแล้ว", completed: "สำเร็จ", cancelled: "ยกเลิก" };
+const bahtFmt = n => "฿" + Number(n).toLocaleString("th-TH", { maximumFractionDigits: 2 });
+
+async function loadOrders() {
+  const body = document.getElementById("ordersAdminBody");
+  const status = document.getElementById("orderFilter").value;
+  try {
+    const rows = await api("/admin/orders" + (status ? `?status=${status}` : ""));
+    body.innerHTML = rows.map(o => `
+      <tr>
+        <td>${fmtTime(o.created_at)}</td>
+        <td>${escapeHtml(o.username || "-")}</td>
+        <td>${o.items.map(i => `${escapeHtml(i.product_name)} × ${i.quantity}`).join("<br>")}</td>
+        <td>${bahtFmt(o.total)}</td>
+        <td>${escapeHtml(o.contact_phone)}<br><span class="muted">${escapeHtml(o.shipping_address)}</span>${o.note ? `<br><span class="muted">หมายเหตุ: ${escapeHtml(o.note)}</span>` : ""}</td>
+        <td>
+          <select data-order-status="${o.id}" ${o.status === "cancelled" ? "disabled" : ""}>
+            ${Object.entries(ORDER_TEXT).map(([v, label]) => `<option value="${v}" ${v === o.status ? "selected" : ""}>${label}</option>`).join("")}
+          </select>
+        </td>
+        <td>${pill(o.status, ORDER_TEXT[o.status])}</td>
+      </tr>`).join("") || `<tr><td colspan="7">ไม่มีคำสั่งซื้อ</td></tr>`;
+  } catch (err) {
+    body.innerHTML = `<tr><td colspan="7">${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+document.getElementById("ordersAdminBody").addEventListener("change", async (e) => {
+  const sel = e.target.closest("select[data-order-status]");
+  if (!sel) return;
+  if (sel.value === "cancelled" && !confirm("ยกเลิกคำสั่งซื้อนี้? สต็อกจะถูกคืน และเปิดกลับไม่ได้")) { loadOrders(); return; }
+  try {
+    await api(`/admin/orders/${sel.dataset.orderStatus}`, { method: "PATCH", body: JSON.stringify({ status: sel.value }) });
+    document.getElementById("orderAdminMessage").textContent = "";
+  } catch (err) { document.getElementById("orderAdminMessage").textContent = err.message; }
+  await Promise.all([loadOrders(), loadProducts(), loadOverview()]);
+});
+
+document.getElementById("orderFilter").addEventListener("change", loadOrders);
+
+async function loadProducts() {
+  const body = document.getElementById("productsBody");
+  try {
+    const rows = await api("/admin/products");
+    body.innerHTML = rows.map(p => `
+      <tr data-pid="${p.id}">
+        <td>${escapeHtml(p.model_code)}</td>
+        <td>${escapeHtml(p.name)}</td>
+        <td><input type="number" min="0" step="any" data-field="price" value="${p.price}" style="width:110px"></td>
+        <td><input type="number" min="0" data-field="stock" value="${p.stock}" style="width:80px"></td>
+        <td><input type="checkbox" data-field="active" ${p.active ? "checked" : ""} style="width:auto"></td>
+        <td><button class="button-small" data-action="save-product" data-id="${p.id}">บันทึก</button></td>
+      </tr>`).join("") || `<tr><td colspan="6">ยังไม่มีสินค้า เพิ่มรุ่นแรกจากฟอร์มด้านบน</td></tr>`;
+  } catch (err) {
+    body.innerHTML = `<tr><td colspan="6">${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+document.getElementById("productsBody").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-action='save-product']");
+  if (!btn) return;
+  const row = btn.closest("tr");
+  const msg = document.getElementById("productMessage");
+  try {
+    await api(`/admin/products/${btn.dataset.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        price: Number(row.querySelector("[data-field='price']").value),
+        stock: parseInt(row.querySelector("[data-field='stock']").value, 10),
+        active: row.querySelector("[data-field='active']").checked
+      })
+    });
+    msg.textContent = "บันทึกแล้ว";
+  } catch (err) { msg.textContent = err.message; }
+});
+
+document.getElementById("addProductBtn").addEventListener("click", async () => {
+  const msg = document.getElementById("productMessage");
+  const num = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
+  const code = document.getElementById("pCode").value.trim();
+  const name = document.getElementById("pName").value.trim();
+  if (!code || !name || num("pPrice") === null) { msg.textContent = "กรุณากรอกรหัสรุ่น ชื่อ และราคา"; return; }
+  try {
+    await api("/admin/products", {
+      method: "POST",
+      body: JSON.stringify({
+        model_code: code, name,
+        description: document.getElementById("pDesc").value.trim() || null,
+        price: num("pPrice"), stock: parseInt(document.getElementById("pStock").value || "0", 10),
+        max_flow_m3h: num("pFlow"), airflow_m3min: num("pAir"), power_kw: num("pKw"),
+        warranty_months: parseInt(document.getElementById("pWarranty").value || "12", 10)
+      })
+    });
+    msg.textContent = "";
+    ["pCode", "pName", "pPrice", "pFlow", "pAir", "pKw", "pDesc"].forEach(id => { document.getElementById(id).value = ""; });
+    await loadProducts();
+  } catch (err) { msg.textContent = err.message; }
+});

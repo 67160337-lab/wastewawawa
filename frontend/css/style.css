@@ -24,3 +24,15 @@ textarea{min-height:110px;resize:vertical}
 .btn-danger{background:#c0392b}.btn-light{background:#e6ece9;color:#1c3a34}
 .compact td,.compact th{padding:10px 12px}
 @media(max-width:800px){.two-col{grid-template-columns:1fr}.admin-kpis{grid-template-columns:1fr 1fr}}
+
+/* ---- shop ---- */
+.pill.pending{background:#fff3d6;color:#9a6700}.pill.confirmed{background:#dfeefe;color:#0b5cad}.pill.shipped{background:#e8e4fb;color:#5b3fc4}.pill.completed{background:#e1f4ea;color:#157347}.pill.cancelled{background:#eceff3;color:#5b6678}
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px;margin-top:18px}
+.product{background:#fff;border:1px solid #edf0f4;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:8px}
+.product.recommended{border-color:#116b5b;box-shadow:0 0 0 2px #116b5b22}
+.product h4{margin:0}.product .price{font-size:24px;font-weight:800;color:#116b5b}
+.product ul{margin:4px 0;padding-left:18px;color:#41505f;font-size:14px}
+.product button{margin-top:auto}
+.cart-line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #edf0f4;font-size:14px}
+.cart-line input{width:70px;padding:7px}
+.cart-total{font-size:20px;font-weight:800;text-align:right;margin:14px 0}

@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from backend.auth import admin_from_token, user_from_token
 from backend.database import get_db
-from backend.models import Device, ServiceRequest, User, WaterQuality
+from backend.models import Device, Order, ServiceRequest, User, WaterQuality
 from backend.rules import LABELS, evaluate
 from backend.schemas import (
     DeviceCreate,
@@ -288,6 +288,7 @@ def admin_overview(authorization: str = Header(default=""), db: Session = Depend
             "warranty_expiring_30d": sum(1 for d in devices if warranty_soon(d)),
             "warranty_expired": sum(1 for d in devices if d["warranty_days_left"] is not None and d["warranty_days_left"] < 0),
             "open_requests": db.query(func.count(ServiceRequest.id)).filter(ServiceRequest.status != "closed").scalar() or 0,
+            "pending_orders": db.query(func.count(Order.id)).filter(Order.status == "pending").scalar() or 0,
             "readings_24h": db.query(func.count(WaterQuality.id)).filter(WaterQuality.created_at >= since).scalar() or 0,
         },
         "attention": needs_attention[:8],

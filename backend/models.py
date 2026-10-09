@@ -85,3 +85,50 @@ class ServiceRequest(Base):
         Index("idx_sr_user_created", "user_id", "created_at"),
         Index("idx_sr_status", "status"),
     )
+
+
+class Product(Base):
+    """An air blower / aerator model customers can buy."""
+    __tablename__ = "products"
+    id = Column(Integer, primary_key=True)
+    model_code = Column(String(60), unique=True, nullable=False)
+    name = Column(String(150), nullable=False)
+    description = Column(Text, nullable=True)
+    # Largest plant flow (m3/h) this model is meant to serve; drives the "recommended" badge.
+    max_flow_m3h = Column(Float, nullable=True)
+    airflow_m3min = Column(Float, nullable=True)
+    power_kw = Column(Float, nullable=True)
+    price = Column(Float, nullable=False)           # THB, per unit
+    stock = Column(Integer, nullable=False, default=0)
+    warranty_months = Column(Integer, nullable=False, default=12)
+    active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Order(Base):
+    __tablename__ = "orders"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status = Column(String(20), nullable=False, default="pending")  # pending|confirmed|shipped|completed|cancelled
+    total = Column(Float, nullable=False)
+    contact_phone = Column(String(30), nullable=False)
+    shipping_address = Column(Text, nullable=False)
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_order_user_created", "user_id", "created_at"),
+        Index("idx_order_status", "status"),
+    )
+
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+    # Snapshot so old orders stay correct if the product is renamed or repriced.
+    product_name = Column(String(150), nullable=False)
+    unit_price = Column(Float, nullable=False)
+    quantity = Column(Integer, nullable=False)

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shop - Wastewater AI</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><span>WA</span> Wastewater AI</div>
+  <nav>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="water.html">Water Quality</a>
+    <a href="prediction.html">AI Prediction</a>
+    <a href="history.html">History</a>
+    <a class="active" href="shop.html">Shop</a>
+    <a href="support.html">Support</a>
+    <a id="navAdmin" href="admin.html" style="display:none">Admin</a>
+  </nav>
+  <button class="logout" onclick="logout()">Logout</button>
+</aside>
+
+<main class="main">
+  <header>
+    <div><p class="muted">เลือกซื้อเครื่องเติมอากาศ</p><h2>สั่งซื้อเครื่อง</h2></div>
+  </header>
+
+  <section class="panel">
+    <div class="panel-title"><div><h3>หาเครื่องที่เหมาะกับระบบของคุณ</h3>
+      <p class="muted">กรอกอัตราการไหลของน้ำเสียที่เข้าระบบ เราจะไฮไลต์รุ่นที่รองรับได้ ค่าเริ่มต้นดึงจากเซนเซอร์ล่าสุดของคุณ (ถ้ามี)</p></div></div>
+    <div class="form-inline" style="margin-top:14px;margin-bottom:0">
+      <div style="max-width:260px"><label for="flowInput">อัตราการไหล (m³/h)</label><input id="flowInput" type="number" min="0" step="any" placeholder="เช่น 50"></div>
+    </div>
+    <p class="note" id="recoNote"></p>
+  </section>
+
+  <div id="productGrid" class="product-grid"><p class="muted">กำลังโหลดสินค้า…</p></div>
+
+  <section class="panel" style="margin-top:24px" id="cartPanel">
+    <div class="panel-title"><h3>ตะกร้าสินค้า</h3></div>
+    <div id="cartLines"><p class="muted">ยังไม่มีสินค้าในตะกร้า</p></div>
+    <div class="cart-total" id="cartTotal"></div>
+    <div class="two-col" style="margin-bottom:0">
+      <div><label for="phone">เบอร์โทรติดต่อ</label><input id="phone" maxlength="30"></div>
+      <div><label for="note">หมายเหตุ (ถ้ามี)</label><input id="note" maxlength="500"></div>
+    </div>
+    <label for="address">ที่อยู่จัดส่ง</label>
+    <textarea id="address" maxlength="500"></textarea>
+    <button id="orderBtn" style="margin-top:16px">ส่งคำสั่งซื้อ</button>
+    <p class="note">ยังไม่มีการชำระเงินออนไลน์ ทีมงานจะติดต่อกลับเพื่อยืนยันคำสั่งซื้อและแจ้งวิธีชำระเงิน</p>
+    <p id="orderMessage" class="message"></p>
+  </section>
+
+  <section class="panel" style="margin-top:24px">
+    <div class="panel-title"><h3>คำสั่งซื้อของฉัน</h3></div>
+    <div class="table-wrap">
+      <table class="compact">
+        <thead><tr><th>วันที่</th><th>รายการ</th><th>ยอดรวม</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="ordersBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</div>
+<script src="js/api.js"></script>
+<script src="js/shop.js"></script>
+</body>
+</html>

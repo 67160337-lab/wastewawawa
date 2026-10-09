@@ -5,7 +5,7 @@
 <body>
 <div class="layout"><aside class="sidebar">
 <div class="brand"><span>WA</span> Wastewater AI</div>
-<nav><a href="dashboard.html">Dashboard</a><a href="water.html">Water Quality</a><a href="prediction.html">AI Prediction</a><a href="history.html">History</a><a href="support.html">Support</a><a class="active" id="navAdmin" href="admin.html">Admin</a></nav>
+<nav><a href="dashboard.html">Dashboard</a><a href="water.html">Water Quality</a><a href="prediction.html">AI Prediction</a><a href="history.html">History</a><a href="shop.html">Shop</a><a href="support.html">Support</a><a class="active" id="navAdmin" href="admin.html">Admin</a></nav>
 <button class="logout" onclick="logout()">Logout</button>
 </aside>
 <main class="main">
@@ -18,6 +18,7 @@
   <div class="stat" id="kReqBox"><span>คำขอแจ้งซ่อมที่ค้างอยู่</span><strong id="kRequests">--</strong></div>
   <div class="stat"><span>เครื่องที่ไม่ส่งข้อมูล</span><strong id="kOffline">--</strong><small>เกิน 15 นาที / ยังไม่เคยส่ง</small></div>
   <div class="stat"><span>ประกันใกล้หมด (30 วัน)</span><strong id="kWarranty">--</strong><small id="kExpired"></small></div>
+  <div class="stat" id="kOrderBox"><span>คำสั่งซื้อรอยืนยัน</span><strong id="kOrders">--</strong></div>
   <div class="stat"><span>การวัดใน 24 ชั่วโมง</span><strong id="kReadings">--</strong></div>
 </section>
 
@@ -46,6 +47,42 @@
     <table class="compact">
       <thead><tr><th>Serial</th><th>รุ่น</th><th>ลูกค้า</th><th>สถานะ</th><th>ประกันถึง</th><th></th></tr></thead>
       <tbody id="devicesBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" style="margin-top:24px">
+  <div class="panel-title"><div><h3>คำสั่งซื้อเครื่อง</h3><p class="muted">ยืนยัน จัดส่ง และปิดงาน (ยกเลิกแล้วระบบคืนสต็อกให้อัตโนมัติ) เมื่อส่งมอบแล้วให้เพิ่มเครื่องและผูกกับลูกค้าในส่วน "เครื่องที่ขายแล้ว"</p></div>
+    <select id="orderFilter" style="width:auto"><option value="">ทั้งหมด</option><option value="pending">รอยืนยัน</option><option value="confirmed">ยืนยันแล้ว</option><option value="shipped">จัดส่งแล้ว</option><option value="completed">สำเร็จ</option><option value="cancelled">ยกเลิก</option></select>
+  </div>
+  <p id="orderAdminMessage" class="message"></p>
+  <div class="table-wrap">
+    <table class="compact">
+      <thead><tr><th>วันที่</th><th>ลูกค้า</th><th>รายการ</th><th>ยอดรวม</th><th>ติดต่อ / จัดส่ง</th><th>สถานะ</th><th></th></tr></thead>
+      <tbody id="ordersAdminBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" style="margin-top:24px">
+  <div class="panel-title"><div><h3>สินค้า (เครื่องเติมอากาศ)</h3><p class="muted">ราคา สต็อก และการเปิด/ปิดขาย ลูกค้าเห็นเฉพาะสินค้าที่เปิดขาย</p></div></div>
+  <p id="productMessage" class="message"></p>
+  <div class="form-inline">
+    <div><label for="pCode">รหัสรุ่น</label><input id="pCode"></div>
+    <div style="flex:2 1 220px"><label for="pName">ชื่อสินค้า</label><input id="pName"></div>
+    <div><label for="pPrice">ราคา (บาท)</label><input id="pPrice" type="number" min="0" step="any"></div>
+    <div><label for="pStock">สต็อก</label><input id="pStock" type="number" min="0" value="0"></div>
+    <div><label for="pFlow">รองรับการไหลสูงสุด (m³/h)</label><input id="pFlow" type="number" min="0" step="any"></div>
+    <div><label for="pAir">ปริมาณลม (m³/min)</label><input id="pAir" type="number" min="0" step="any"></div>
+    <div><label for="pKw">กำลัง (kW)</label><input id="pKw" type="number" min="0" step="any"></div>
+    <div><label for="pWarranty">ประกัน (เดือน)</label><input id="pWarranty" type="number" min="0" value="12"></div>
+    <div style="flex:3 1 300px"><label for="pDesc">รายละเอียด</label><input id="pDesc"></div>
+    <div style="flex:0 0 auto"><button id="addProductBtn">เพิ่มสินค้า</button></div>
+  </div>
+  <div class="table-wrap">
+    <table class="compact">
+      <thead><tr><th>รหัส</th><th>ชื่อ</th><th>ราคา</th><th>สต็อก</th><th>เปิดขาย</th><th></th></tr></thead>
+      <tbody id="productsBody"></tbody>
     </table>
   </div>
 </section>
