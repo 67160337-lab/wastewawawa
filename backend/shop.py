@@ -1,6 +1,7 @@
 """Product catalogue + orders (no online payment: the seller confirms each order)."""
 import os
 import calendar
+import uuid
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
@@ -265,27 +266,39 @@ def admin_update_order(order_id: int, data: OrderUpdate,
     if data.status == "cancelled" and order.status != "cancelled":
         _restock(db, order.id)
 
-    # Assign real, pre-registered machine serial numbers to the buyer only when
-    # the order first becomes completed. Device.model_name must match Product.name.
+    # Bind a device to the buyer when an order first becomes completed.
+    # Prefer pre-registered devices. If inventory has not been registered yet,
+    # create a unique system serial so the order can still complete and bind.
+    # Replace AUTO serials with the physical manufacturer's serial when available.
     assigned_count = 0
+    created_device_count = 0
     if data.status == "completed" and order.status != "completed":
         items = db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
         assignments = []
+        today = date.today()
         for item in items:
             product = db.query(Product).filter(Product.id == item.product_id).first() if item.product_id else None
             if not product:
-                raise HTTPException(400, f"找不到สินค้า {item.product_name}，ไม่สามารถผูกเครื่องได้")
+                raise HTTPException(400, f"ไม่พบสินค้า {item.product_name} จึงไม่สามารถผูกเครื่องได้")
             available = (db.query(Device)
                          .filter(Device.user_id.is_(None), Device.model_name == product.name)
                          .order_by(Device.id.asc()).limit(item.quantity).all())
-            if len(available) < item.quantity:
-                raise HTTPException(
-                    400,
-                    f"สินค้า {product.name} ต้องใช้เครื่อง {item.quantity} เครื่อง แต่มีเครื่องที่ลงทะเบียนและยังไม่ผูกบัญชีเพียง {len(available)} เครื่อง กรุณาเพิ่ม Serial Number ในเมนูจัดการเครื่องก่อน"
+            missing = item.quantity - len(available)
+            for _ in range(max(0, missing)):
+                code = ''.join(ch for ch in (product.model_code or 'DEVICE') if ch.isalnum()).upper()
+                device = Device(
+                    serial_no=f"AUTO-{code}-{uuid.uuid4().hex[:10].upper()}",
+                    model_name=product.name,
+                    user_id=None,
+                    purchased_at=today,
+                    warranty_until=None,
                 )
-            assignments.extend((device, product) for device in available)
+                db.add(device)
+                db.flush()
+                available.append(device)
+                created_device_count += 1
+            assignments.extend((device, product) for device in available[:item.quantity])
 
-        today = date.today()
         for device, product in assignments:
             device.user_id = order.user_id
             device.purchased_at = today
@@ -303,4 +316,7 @@ def admin_update_order(order_id: int, data: OrderUpdate,
     message = "Order updated"
     if assigned_count:
         message += f"; assigned {assigned_count} device(s) to customer account"
-    return {"message": message, "status": order.status, "assigned_devices": assigned_count}
+    if created_device_count:
+        message += f"; generated {created_device_count} system serial number(s) because no unassigned devices were registered"
+    return {"message": message, "status": order.status, "assigned_devices": assigned_count,
+            "created_devices": created_device_count}
