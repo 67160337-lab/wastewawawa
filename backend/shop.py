@@ -1,13 +1,14 @@
 """Product catalogue + orders (no online payment: the seller confirms each order)."""
 import os
-from datetime import datetime
+import calendar
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from backend.auth import admin_from_token, user_from_token
 from backend.database import SessionLocal, get_db
-from backend.models import Order, OrderItem, Product, User
+from backend.models import Device, Order, OrderItem, Product, User
 from backend.schemas import OrderCreate, OrderUpdate, ProductCreate, ProductUpdate
 
 router = APIRouter()
@@ -263,7 +264,43 @@ def admin_update_order(order_id: int, data: OrderUpdate,
         raise HTTPException(400, "คำสั่งซื้อที่ยกเลิกแล้วเปิดกลับไม่ได้ ให้สร้างคำสั่งซื้อใหม่")
     if data.status == "cancelled" and order.status != "cancelled":
         _restock(db, order.id)
+
+    # Assign real, pre-registered machine serial numbers to the buyer only when
+    # the order first becomes completed. Device.model_name must match Product.name.
+    assigned_count = 0
+    if data.status == "completed" and order.status != "completed":
+        items = db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
+        assignments = []
+        for item in items:
+            product = db.query(Product).filter(Product.id == item.product_id).first() if item.product_id else None
+            if not product:
+                raise HTTPException(400, f"找不到สินค้า {item.product_name}，ไม่สามารถผูกเครื่องได้")
+            available = (db.query(Device)
+                         .filter(Device.user_id.is_(None), Device.model_name == product.name)
+                         .order_by(Device.id.asc()).limit(item.quantity).all())
+            if len(available) < item.quantity:
+                raise HTTPException(
+                    400,
+                    f"สินค้า {product.name} ต้องใช้เครื่อง {item.quantity} เครื่อง แต่มีเครื่องที่ลงทะเบียนและยังไม่ผูกบัญชีเพียง {len(available)} เครื่อง กรุณาเพิ่ม Serial Number ในเมนูจัดการเครื่องก่อน"
+                )
+            assignments.extend((device, product) for device in available)
+
+        today = date.today()
+        for device, product in assignments:
+            device.user_id = order.user_id
+            device.purchased_at = today
+            months = max(0, int(product.warranty_months or 0))
+            month_index = today.month - 1 + months
+            year = today.year + month_index // 12
+            month = month_index % 12 + 1
+            day = min(today.day, calendar.monthrange(year, month)[1])
+            device.warranty_until = date(year, month, day)
+            assigned_count += 1
+
     order.status = data.status
     order.updated_at = datetime.utcnow()
     db.commit()
-    return {"message": "Order updated", "status": order.status}
+    message = "Order updated"
+    if assigned_count:
+        message += f"; assigned {assigned_count} device(s) to customer account"
+    return {"message": message, "status": order.status, "assigned_devices": assigned_count}
