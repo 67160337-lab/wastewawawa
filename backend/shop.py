@@ -66,25 +66,37 @@ def _restock(db: Session, order_id: int):
             )
 
 
-def seed_demo_products():
-    """Optional demo data. Placeholder specs and prices, NOT a real price list.
-    Only runs when SEED_DEMO_PRODUCTS=true and the table is empty."""
-    if os.getenv("SEED_DEMO_PRODUCTS", "false").lower() != "true":
+# Starter catalogue. Specs and prices are starting values for you to edit in
+# the admin dashboard (Admin > สินค้า), so check them against your real products.
+STARTER_PRODUCTS = [
+    dict(model_code="AB-15", name="AeroBlow AB-15 เครื่องเติมอากาศขนาดเล็ก",
+         description="Ring blower 1.5 kW เหมาะกับระบบบำบัดน้ำเสียขนาดเล็ก เช่น หอพัก ร้านอาหาร อาคารขนาดเล็ก เสียงเงียบ ไม่ต้องใช้น้ำมันหล่อลื่น",
+         max_flow_m3h=40, airflow_m3min=2.0, power_kw=1.5, price=28900, stock=10, warranty_months=12),
+    dict(model_code="AB-22", name="AeroBlow AB-22 เครื่องเติมอากาศขนาดกลาง",
+         description="Ring blower 2.2 kW เหมาะกับโรงแรมขนาดเล็ก โรงงานขนาดเล็ก หรือชุมชน รองรับน้ำเสียที่มีค่า COD ปานกลาง",
+         max_flow_m3h=60, airflow_m3min=3.0, power_kw=2.2, price=36500, stock=8, warranty_months=12),
+    dict(model_code="AB-37", name="AeroBlow AB-37 เครื่องเติมอากาศขนาดกลาง-ใหญ่",
+         description="Ring blower 3.7 kW เหมาะกับโรงงานอาหาร ฟาร์ม หรืออาคารขนาดใหญ่ ที่มีปริมาณน้ำเสียต่อชั่วโมงสูง",
+         max_flow_m3h=100, airflow_m3min=5.0, power_kw=3.7, price=54900, stock=5, warranty_months=18),
+    dict(model_code="AB-55", name="AeroBlow AB-55 เครื่องเติมอากาศขนาดใหญ่",
+         description="Ring blower 5.5 kW สำหรับระบบบำบัดขนาดใหญ่ ทำงานต่อเนื่อง 24 ชั่วโมง ควบคุมความเร็วจาก AI ได้เต็มประสิทธิภาพ",
+         max_flow_m3h=150, airflow_m3min=7.5, power_kw=5.5, price=79000, stock=3, warranty_months=24),
+]
+
+
+def seed_starter_products():
+    """Fill an EMPTY catalogue with the starter products above.
+    Set SEED_PRODUCTS=false to disable. Never touches a catalogue that already has products."""
+    if os.getenv("SEED_PRODUCTS", "true").lower() == "false":
         return
     db = SessionLocal()
     try:
         if db.query(Product).count():
             return
-        demo = [
-            ("DEMO-S", "เครื่องเติมอากาศ รุ่นเล็ก (ตัวอย่าง)", "ข้อมูลตัวอย่างสำหรับทดสอบระบบ", 40, 1.2, 1.5, 25000, 10),
-            ("DEMO-M", "เครื่องเติมอากาศ รุ่นกลาง (ตัวอย่าง)", "ข้อมูลตัวอย่างสำหรับทดสอบระบบ", 80, 2.4, 3.0, 42000, 6),
-            ("DEMO-L", "เครื่องเติมอากาศ รุ่นใหญ่ (ตัวอย่าง)", "ข้อมูลตัวอย่างสำหรับทดสอบระบบ", 150, 4.8, 5.5, 78000, 3),
-        ]
-        for code, name, desc, flow, air, kw, price, stock in demo:
-            db.add(Product(model_code=code, name=name, description=desc, max_flow_m3h=flow,
-                           airflow_m3min=air, power_kw=kw, price=price, stock=stock))
+        for item in STARTER_PRODUCTS:
+            db.add(Product(**item))
         db.commit()
-        print("Seeded demo products (SEED_DEMO_PRODUCTS=true).")
+        print(f"Seeded {len(STARTER_PRODUCTS)} starter products.")
     finally:
         db.close()
 

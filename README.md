@@ -85,4 +85,4 @@ Login tokens are now signed (HMAC). **Set `SECRET_KEY`** in your environment (`r
 - Customers: `shop.html` — catalogue, "recommended for your flow rate" highlight (prefilled from their latest sensor reading), cart, order request, cancel while pending.
 - Admin: `admin.html` — order inbox (confirm / ship / complete / cancel; cancelling restores stock) and product management (price, stock, on/off sale).
 - No online payment: the seller confirms each order and arranges payment. Prices are always taken from the database, never from the browser.
-- `SEED_DEMO_PRODUCTS=true` inserts three **placeholder** products into an empty catalogue (used in `docker-compose.yml` for local testing only).
+- On first start, an empty catalogue is filled with 4 starter products (AB-15, AB-22, AB-37, AB-55; see `STARTER_PRODUCTS` in `backend/shop.py`). Their specs and prices are starting values: edit them in Admin > สินค้า. Set `SEED_PRODUCTS=false` to disable.

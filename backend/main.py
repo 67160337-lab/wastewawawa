@@ -15,7 +15,7 @@ from backend.schemas import RegisterRequest, LoginRequest, WaterRequest, Predict
 from backend.auth import hash_password, verify_password, create_token, user_from_token, admin_from_token
 from backend.rules import status_label
 from backend.portal import router as portal_router
-from backend.shop import router as shop_router, seed_demo_products
+from backend.shop import router as shop_router, seed_starter_products
 from backend.mock_sensor import get_sensor_data
 from sqlalchemy import text
 
@@ -100,7 +100,7 @@ _migrate_sqlite_add_is_admin()
 _migrate_sqlite_add_indexes()
 _migrate_sqlite_add_device_id()
 _bootstrap_admin()
-seed_demo_products()
+seed_starter_products()
 
 app = FastAPI(title="Wastewater AI API")
 

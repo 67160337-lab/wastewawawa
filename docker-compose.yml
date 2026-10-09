@@ -8,8 +8,6 @@ services:
       MOCK_SENSOR: "true"
       SENSOR_SAVE_INTERVAL: "30"
       # Change this to your own long random string before deploying.
-      # Local demo only: fills the shop with PLACEHOLDER products/prices. Remove for production.
-      SEED_DEMO_PRODUCTS: "true"
       SECRET_KEY: "change-me-to-a-long-random-string"
       DATABASE_URL: "sqlite:////app/data/wastewater.db"
     volumes:
