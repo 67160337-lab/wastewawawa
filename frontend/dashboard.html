@@ -14,7 +14,7 @@
     <a class="active" href="dashboard.html">Dashboard</a>
     <a href="water.html">Water Quality</a>
     <a href="prediction.html">AI Prediction</a>
-    <a href="history.html">History</a>
+    <a href="history.html">History</a><a href="support.html">Support</a>
     <a id="navAdmin" href="admin.html" style="display:none">Admin</a>
   </nav>
   <button class="logout" onclick="logout()">Logout</button>
@@ -28,6 +28,26 @@
     </div>
     <div id="sensorStatus" class="status-dot live">● LIVE</div>
   </header>
+
+  <div id="statusBanner" class="banner none">
+    <div class="dot" id="bannerDot">…</div>
+    <div>
+      <h3 id="bannerTitle">กำลังตรวจสอบสถานะระบบ…</h3>
+      <div id="bannerAdvice"></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <section class="panel">
+      <div class="panel-title"><h3>เครื่องบำบัดน้ำของฉัน</h3></div>
+      <div id="deviceList"><p class="muted">กำลังโหลด…</p></div>
+    </section>
+    <section class="panel">
+      <div class="panel-title"><h3>สรุปย้อนหลัง 24 ชั่วโมง</h3></div>
+      <dl class="kv" id="summary24"><dt>กำลังโหลด…</dt><dd></dd></dl>
+      <p class="note" id="requestNote"></p>
+    </section>
+  </div>
 
   <section class="panel">
     <div class="panel-title">

@@ -5,13 +5,65 @@
 <body>
 <div class="layout"><aside class="sidebar">
 <div class="brand"><span>WA</span> Wastewater AI</div>
-<nav><a href="dashboard.html">Dashboard</a><a href="water.html">Water Quality</a><a href="prediction.html">AI Prediction</a><a href="history.html">History</a><a class="active" id="navAdmin" href="admin.html">Admin</a></nav>
+<nav><a href="dashboard.html">Dashboard</a><a href="water.html">Water Quality</a><a href="prediction.html">AI Prediction</a><a href="history.html">History</a><a href="support.html">Support</a><a class="active" id="navAdmin" href="admin.html">Admin</a></nav>
 <button class="logout" onclick="logout()">Logout</button>
 </aside>
 <main class="main">
-<header><div><p class="muted">Administration</p><h2>Admin Panel</h2></div></header>
+<header><div><p class="muted">Administration</p><h2>Admin Dashboard</h2></div></header>
+
+<section class="admin-kpis" id="kpis">
+  <div class="stat"><span>ลูกค้า</span><strong id="kCustomers">--</strong></div>
+  <div class="stat"><span>เครื่องที่ขายแล้ว</span><strong id="kDevices">--</strong><small id="kUnassigned"></small></div>
+  <div class="stat" id="kAlertBox"><span>เครื่องที่ต้องเฝ้าระวัง</span><strong id="kAlert">--</strong><small id="kCritical"></small></div>
+  <div class="stat" id="kReqBox"><span>คำขอแจ้งซ่อมที่ค้างอยู่</span><strong id="kRequests">--</strong></div>
+  <div class="stat"><span>เครื่องที่ไม่ส่งข้อมูล</span><strong id="kOffline">--</strong><small>เกิน 15 นาที / ยังไม่เคยส่ง</small></div>
+  <div class="stat"><span>ประกันใกล้หมด (30 วัน)</span><strong id="kWarranty">--</strong><small id="kExpired"></small></div>
+  <div class="stat"><span>การวัดใน 24 ชั่วโมง</span><strong id="kReadings">--</strong></div>
+</section>
 
 <section class="panel">
+  <div class="panel-title"><div><h3>เครื่องที่ต้องดูแลก่อน</h3><p class="muted">เรียงตามความรุนแรง (วิกฤต → เฝ้าระวัง → ไม่ส่งข้อมูล)</p></div></div>
+  <div class="table-wrap">
+    <table class="compact">
+      <thead><tr><th>Serial</th><th>ลูกค้า</th><th>สถานะ</th><th>DO</th><th>ส่งข้อมูลล่าสุด</th></tr></thead>
+      <tbody id="attentionBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" style="margin-top:24px">
+  <div class="panel-title"><div><h3>เครื่องที่ขายแล้ว</h3><p class="muted">ผูกเครื่องกับบัญชีลูกค้า ดูสถานะและประกัน</p></div></div>
+  <p id="deviceMessage" class="message"></p>
+  <div class="form-inline">
+    <div><label for="dSerial">Serial No.</label><input id="dSerial" placeholder="เช่น WT-2026-0001"></div>
+    <div><label for="dModel">รุ่น</label><input id="dModel" placeholder="เช่น AeroClean 50"></div>
+    <div><label for="dUser">ลูกค้า</label><select id="dUser"><option value="">ยังไม่ผูกลูกค้า</option></select></div>
+    <div><label for="dDate">วันที่ซื้อ</label><input id="dDate" type="date"></div>
+    <div style="flex:0 1 110px"><label for="dWarranty">ประกัน (เดือน)</label><input id="dWarranty" type="number" min="0" max="120" value="12"></div>
+    <div style="flex:0 0 auto"><button id="addDeviceBtn">เพิ่มเครื่อง</button></div>
+  </div>
+  <div class="table-wrap">
+    <table class="compact">
+      <thead><tr><th>Serial</th><th>รุ่น</th><th>ลูกค้า</th><th>สถานะ</th><th>ประกันถึง</th><th></th></tr></thead>
+      <tbody id="devicesBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" style="margin-top:24px">
+  <div class="panel-title"><div><h3>คำขอแจ้งซ่อมจากลูกค้า</h3><p class="muted">เปลี่ยนสถานะและเขียนข้อความตอบกลับ ลูกค้าจะเห็นในหน้า Support</p></div>
+    <select id="reqFilter" style="width:auto"><option value="">ทั้งหมด</option><option value="open">รอดำเนินการ</option><option value="in_progress">กำลังดำเนินการ</option><option value="closed">ปิดงานแล้ว</option></select>
+  </div>
+  <p id="requestMessage" class="message"></p>
+  <div class="table-wrap">
+    <table class="compact">
+      <thead><tr><th>วันที่</th><th>ลูกค้า / เครื่อง</th><th>เรื่อง</th><th>สถานะ</th><th>ตอบกลับ</th><th></th></tr></thead>
+      <tbody id="requestsBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" style="margin-top:24px">
   <div class="panel-title"><div><h3>Manage Users</h3><p class="muted">Grant or remove admin access, or remove an account</p></div></div>
   <p id="usersMessage" class="message"></p>
   <div class="table-wrap">

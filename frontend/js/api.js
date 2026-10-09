@@ -26,6 +26,19 @@ async function api(path, options = {}) {
     return data;
 }
 
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[ch]));
+}
+
+const LEVEL_TEXT = { ok: "ปกติ", warn: "ควรเฝ้าระวัง", crit: "วิกฤต", offline: "ไม่ส่งข้อมูล", nodata: "ยังไม่มีข้อมูล" };
+const REQUEST_TEXT = { open: "รอดำเนินการ", in_progress: "กำลังดำเนินการ", closed: "ปิดงานแล้ว" };
+
+function pill(kind, text) {
+    return `<span class="pill ${escapeHtml(kind)}">${escapeHtml(text)}</span>`;
+}
+
 function requireLogin() {
     if (!token()) {
         window.location.href = "index.html";

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support - Wastewater AI</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><span>WA</span> Wastewater AI</div>
+  <nav>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="water.html">Water Quality</a>
+    <a href="prediction.html">AI Prediction</a>
+    <a href="history.html">History</a>
+    <a class="active" href="support.html">Support</a>
+    <a id="navAdmin" href="admin.html" style="display:none">Admin</a>
+  </nav>
+  <button class="logout" onclick="logout()">Logout</button>
+</aside>
+
+<main class="main">
+  <header>
+    <div><p class="muted">ฝ่ายบริการลูกค้า</p><h2>แจ้งซ่อม / ติดต่อสอบถาม</h2></div>
+  </header>
+
+  <section class="panel">
+    <div class="panel-title"><h3>ส่งคำขอใหม่</h3></div>
+    <div style="margin-top:14px">
+      <label for="deviceSelect">เครื่อง</label>
+      <select id="deviceSelect"><option value="">ไม่ระบุเครื่อง</option></select>
+      <label for="subject">หัวข้อ</label>
+      <input id="subject" maxlength="150" placeholder="เช่น เครื่องเติมอากาศมีเสียงดังผิดปกติ">
+      <label for="detail">รายละเอียด</label>
+      <textarea id="detail" maxlength="2000" placeholder="อธิบายอาการที่พบ"></textarea>
+      <button id="sendBtn" style="margin-top:16px">ส่งคำขอ</button>
+      <p id="formMessage" class="message"></p>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:24px">
+    <div class="panel-title"><h3>คำขอของฉัน</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>วันที่</th><th>เครื่อง</th><th>หัวข้อ</th><th>สถานะ</th><th>ตอบกลับจากทีมงาน</th></tr></thead>
+        <tbody id="requestsBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</div>
+<script src="js/api.js"></script>
+<script src="js/support.js"></script>
+</body>
+</html>

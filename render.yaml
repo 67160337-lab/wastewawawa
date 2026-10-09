@@ -12,5 +12,8 @@ services:
         value: "30"
       # Set this to an existing username to grant that account admin access
       # on the next deploy/restart. Safe to remove once you have an admin.
+      # Signs login tokens. Render generates a random value once; do not share it.
+      - key: SECRET_KEY
+        generateValue: true
       - key: ADMIN_USERNAME
         value: ""

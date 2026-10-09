@@ -109,3 +109,81 @@ async function loadDashboard() {
 initChart();
 loadDashboard();
 liveTimer = setInterval(loadDashboard, 2000);
+
+
+// ---------------------------------------------------------------------------
+// Customer overview: status banner, my machine(s), 24h summary.
+// Refreshed less often than the live sensor because it reads saved history.
+// ---------------------------------------------------------------------------
+function renderBanner(current, hasDevice) {
+    const box = document.getElementById("statusBanner");
+    const icon = { ok: "✓", warn: "!", crit: "!", none: "…" };
+    const level = current ? current.level : "none";
+    box.className = `banner ${level}`;
+    document.getElementById("bannerDot").textContent = icon[level];
+
+    if (!current) {
+        document.getElementById("bannerTitle").textContent = "ยังไม่มีข้อมูลจากเครื่อง";
+        document.getElementById("bannerAdvice").innerHTML =
+            `<p>${hasDevice ? "รอข้อมูลชุดแรกจากเซนเซอร์" : "บัญชีนี้ยังไม่ได้ผูกกับเครื่องบำบัดน้ำ กรุณาติดต่อผู้จำหน่าย"}</p>`;
+        return;
+    }
+    document.getElementById("bannerTitle").textContent = `สถานะระบบ: ${current.label}`;
+    document.getElementById("bannerAdvice").innerHTML =
+        current.advice.map(a => `<p>${escapeHtml(a)}</p>`).join("");
+}
+
+function warrantyText(d) {
+    if (d.warranty_days_left === null) return "-";
+    if (d.warranty_days_left < 0) return `หมดประกันแล้ว (${d.warranty_until})`;
+    return `ถึง ${d.warranty_until} (เหลือ ${d.warranty_days_left} วัน)`;
+}
+
+function renderDevices(devices) {
+    const box = document.getElementById("deviceList");
+    if (!devices.length) {
+        box.innerHTML = `<p class="muted">ยังไม่มีเครื่องที่ผูกกับบัญชีนี้</p>`;
+        return;
+    }
+    box.innerHTML = devices.map(d => `
+        <div class="device-card">
+            <div class="panel-title"><strong>${escapeHtml(d.model_name)}</strong>${pill(d.level, d.label)}</div>
+            <dl class="kv">
+                <dt>Serial</dt><dd>${escapeHtml(d.serial_no)}</dd>
+                <dt>วันที่ซื้อ</dt><dd>${escapeHtml(d.purchased_at || "-")}</dd>
+                <dt>ประกัน</dt><dd>${escapeHtml(warrantyText(d))}</dd>
+            </dl>
+        </div>`).join("");
+}
+
+function renderSummary(s, openRequests) {
+    const dl = document.getElementById("summary24");
+    if (!s.readings) {
+        dl.innerHTML = `<dt>ยังไม่มีข้อมูลใน 24 ชั่วโมงที่ผ่านมา</dt><dd></dd>`;
+    } else {
+        dl.innerHTML = `
+            <dt>จำนวนการวัด</dt><dd>${s.readings} ครั้ง</dd>
+            <dt>ช่วงที่ระบบปกติ</dt><dd>${s.normal_percent}%</dd>
+            <dt>DO เฉลี่ย</dt><dd>${s.avg_do} mg/L</dd>
+            <dt>COD เฉลี่ย</dt><dd>${s.avg_cod} mg/L</dd>
+            <dt>อุณหภูมิเฉลี่ย</dt><dd>${s.avg_temp} °C</dd>
+            <dt>อัตราการไหลเฉลี่ย</dt><dd>${s.avg_flow} m³/h</dd>`;
+    }
+    document.getElementById("requestNote").innerHTML = openRequests
+        ? `มีคำขอแจ้งซ่อมที่ยังไม่ปิด ${openRequests} รายการ — <a href="support.html">ดูสถานะ</a>`
+        : `พบปัญหากับเครื่อง? <a href="support.html">แจ้งซ่อม / ติดต่อฝ่ายบริการ</a>`;
+}
+
+async function loadOverview() {
+    try {
+        const o = await api("/me/overview");
+        renderBanner(o.current, o.devices.length > 0);
+        renderDevices(o.devices);
+        renderSummary(o.last_24h, o.open_requests);
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+loadOverview();
+setInterval(loadOverview, 30000);

@@ -10,9 +10,11 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from backend.database import Base, engine, get_db, SessionLocal, DATABASE_URL
-from backend.models import User, WaterQuality, AIPrediction
+from backend.models import User, WaterQuality, AIPrediction, Device, ServiceRequest
 from backend.schemas import RegisterRequest, LoginRequest, WaterRequest, PredictionRequest, AdminRoleUpdate
-from backend.auth import hash_password, verify_password
+from backend.auth import hash_password, verify_password, create_token, user_from_token, admin_from_token
+from backend.rules import status_label
+from backend.portal import router as portal_router
 from backend.mock_sensor import get_sensor_data
 from sqlalchemy import text
 
@@ -75,8 +77,27 @@ def _migrate_sqlite_add_indexes():
         print(f"Warning: index migration skipped: {e}")
 
 
+def _migrate_sqlite_add_device_id():
+    """Existing water_quality tables need the new device_id column + its index."""
+    if not DATABASE_URL.startswith("sqlite"):
+        return
+    try:
+        with engine.connect() as conn:
+            cols = [row[1] for row in conn.execute(text("PRAGMA table_info(water_quality)"))]
+            if "device_id" not in cols:
+                conn.execute(text("ALTER TABLE water_quality ADD COLUMN device_id INTEGER"))
+                print("Migrated: added device_id column to water_quality table.")
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_water_device_created ON water_quality (device_id, created_at)"
+            ))
+            conn.commit()
+    except Exception as e:
+        print(f"Warning: device_id migration skipped: {e}")
+
+
 _migrate_sqlite_add_is_admin()
 _migrate_sqlite_add_indexes()
+_migrate_sqlite_add_device_id()
 _bootstrap_admin()
 
 app = FastAPI(title="Wastewater AI API")
@@ -111,34 +132,10 @@ _last_sensor_save = {}
 SENSOR_SAVE_INTERVAL = int(os.getenv("SENSOR_SAVE_INTERVAL", "30"))
 
 
-def user_from_token(authorization: str, db: Session):
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Please login")
-
-    username = authorization.replace("Bearer ", "", 1)
-    user = db.query(User).filter(User.username == username).first()
-
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid session")
-
-    # Self-heals the ADMIN_USERNAME grant on every authenticated request,
-    # instead of only once at process startup. This matters because on
-    # Render's free plan, the SQLite file is wiped on every deploy, so the
-    # target account may not have existed yet when the server first booted.
-    admin_username = os.getenv("ADMIN_USERNAME")
-    if admin_username and user.username == admin_username and not user.is_admin:
-        user.is_admin = True
-        db.commit()
-        db.refresh(user)
-
-    return user
-
-
-def admin_from_token(authorization: str, db: Session):
-    user = user_from_token(authorization, db)
-    if not user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return user
+def primary_device_id(db: Session, user):
+    """The customer's machine that new readings are attached to (first one they own)."""
+    device = db.query(Device).filter(Device.user_id == user.id).order_by(Device.id).first()
+    return device.id if device else None
 
 
 def calculate_speed(data):
@@ -207,7 +204,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 
     return {
         "message": "Login successful",
-        "token": user.username,
+        "token": create_token(user.id),
         "user": {"id": user.id, "username": user.username, "email": user.email, "is_admin": user.is_admin}
     }
 
@@ -235,11 +232,12 @@ def live_sensor(
     if now - previous >= SENSOR_SAVE_INTERVAL:
         water = WaterQuality(
             user_id=user.id,
+            device_id=primary_device_id(db, user),
             influent_cod=data["influent_cod"],
             flow_rate=data["flow_rate"],
             water_temp=data["water_temp"],
             current_do=data["current_do"],
-            status="ปกติ" if data["current_do"] >= 4 else "ควรเฝ้าระวัง"
+            status=status_label(data["current_do"], data["influent_cod"], data["water_temp"])
         )
 
         prediction = AIPrediction(
@@ -271,9 +269,14 @@ def save_water(
     db: Session = Depends(get_db)
 ):
     user = user_from_token(authorization, db)
-    status = "ปกติ" if data.current_do >= 4 else "ควรเฝ้าระวัง"
+    status = status_label(data.current_do, data.influent_cod, data.water_temp)
 
-    row = WaterQuality(user_id=user.id, status=status, **data.model_dump())
+    row = WaterQuality(
+        user_id=user.id,
+        device_id=primary_device_id(db, user),
+        status=status,
+        **data.model_dump()
+    )
     db.add(row)
     db.commit()
 
@@ -413,6 +416,9 @@ def admin_delete_user(
 
     db.query(WaterQuality).filter(WaterQuality.user_id == user_id).delete()
     db.query(AIPrediction).filter(AIPrediction.user_id == user_id).delete()
+    db.query(ServiceRequest).filter(ServiceRequest.user_id == user_id).delete()
+    # The machine was sold by you, so keep it and just unassign it.
+    db.query(Device).filter(Device.user_id == user_id).update({"user_id": None})
     db.delete(target)
     db.commit()
 
@@ -511,6 +517,9 @@ def admin_explain_indexes(
             })
 
     return result
+
+
+app.include_router(portal_router)
 
 
 # Serve existing HTML/CSS/JS files.

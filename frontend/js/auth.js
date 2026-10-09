@@ -15,7 +15,7 @@ if (loginForm) {
       });
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      location.href = "dashboard.html";
+      location.href = data.user.is_admin ? "admin.html" : "dashboard.html";
     } catch(err) { message.textContent = err.message; }
   });
 }

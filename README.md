@@ -59,3 +59,24 @@ Flow Rate → อัตราการไหลของน้ำ
 ปริมาณน้ำเสียที่ไหลเข้าสู่ระบบบำบัดต่อหน่วยเวลา
 หน่วย: m³/h (ลูกบาศก์เมตรต่อชั่วโมง)
 กำหนดขนาดการทำงานของระบบบำบัด
+
+
+---
+
+## Machine-sales dashboards
+
+The dashboard is bundled with each water-treatment machine sold.
+
+| Role | Landing page | What they see |
+|---|---|---|
+| Customer | `dashboard.html` | Status banner (green/yellow/red + plain-language advice), their machine(s) and warranty, 24h summary, live sensor + AI aerator speed, `support.html` to send repair requests |
+| Admin | `admin.html` | KPIs (customers, machines sold, machines needing attention, open repair requests, offline machines, warranties expiring), machine list with customer assignment, repair-request inbox, plus the existing user management / index check / all-records tables |
+
+### New tables / endpoints
+- `devices` (serial, model, owner, purchase date, warranty) and `service_requests`; `water_quality.device_id` links readings to a machine.
+- Customer: `GET /me/overview`, `GET|POST /service-requests`
+- Admin: `GET /admin/overview`, `GET|POST /admin/devices`, `PATCH|DELETE /admin/devices/{id}`, `GET /admin/service-requests`, `PATCH /admin/service-requests/{id}`
+- Thresholds live in `backend/rules.py` (override with `DO_WARN`, `DO_CRIT`, `COD_WARN`, `TEMP_WARN`).
+
+### Security change
+Login tokens are now signed (HMAC). **Set `SECRET_KEY`** in your environment (`render.yaml` and `docker-compose.yml` already include it). Previously the token was just the username and could be forged.
